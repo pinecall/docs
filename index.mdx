@@ -29,30 +29,23 @@ export default class ClinicaNorte extends Agent {
 ## The four pieces
 
 <Columns cols={2}>
-  <Card title="runtime" icon="server" href="/inside/runtime">
-    The gateway and the worker: one distribution, two processes, on LiveKit. It holds the log, the
-    keys, the tenants and the judges — never the conversation.
-
-    `pip install pinecall`
+  <Card title="The gateway and the worker" img="/art/runtime.svg" href="/inside/runtime">
+    One distribution, two processes, on LiveKit. It holds the log, the keys, the tenants and the
+    judges — never the conversation.
   </Card>
 
-  <Card title="agents" icon="code" href="/agent/writing-an-agent">
-    The class you write, its CLI and the console that CLI serves. This is where what the agent says
-    and does lives.
-
-    `npm i -g pinecall`
+  <Card title="The class you write" img="/art/agents.svg" href="/agent/writing-an-agent">
+    The framework, its CLI and the console that CLI serves. Where what the agent says and does
+    lives.
   </Card>
 
-  <Card title="protocol" icon="git-compare-arrows" href="/wire/overview">
-    One schema, generated into Python, TypeScript and Ruby, so the three ends cannot disagree about
-    a field.
-
-    `npm i @pinecall/protocol`
+  <Card title="The contract" img="/art/protocol.svg" href="/wire/overview">
+    One schema, generated into Python, TypeScript and Ruby, so the three ends cannot disagree
+    about a field.
   </Card>
 
-  <Card title="the console" icon="monitor" href="/run/a-box-in-production">
-    Live calls, their logs, the numbers, the team and what it cost. Served by the same gateway —
-    `pinecall run` prints the URL that signs you in.
+  <Card title="The console and the admin" img="/art/console.svg" href="/run/a-box-in-production">
+    Live calls, their logs, the numbers, the team and what it cost — served by the same gateway.
   </Card>
 </Columns>
 

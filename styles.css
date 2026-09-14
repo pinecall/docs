@@ -1,0 +1,453 @@
+/* The console's design, on Mintlify.
+ *
+ * Mintlify's theme is a starting point, not the design: every docs site worth looking at overrides
+ * it, and the selectors below are the ones it actually emits. The system is the console's, under
+ * the console's own names — four layered near-blacks, hairlines instead of shadows, ONE accent
+ * spent only where something is live or selected, prose in Plex Sans and anything a machine wrote
+ * in Plex Mono. agents/src/cli/ui/shared/styles/tokens.css is the source of every value here.
+ */
+
+:root {
+  --pc-ground: #0d0d0f;
+  --pc-panel: #101013;
+  --pc-panel-2: #16161a;
+  --pc-sunk: #0a0a0c;
+  --pc-edge: #24242a;
+  --pc-edge-soft: #1c1c22;
+  --pc-ink: #ececec;
+  --pc-ink-2: #c9c9d0;
+  --pc-ink-soft: #8b8b93;
+  --pc-ink-faint: #5c5c66;
+  --pc-accent: #f0569a;
+  --pc-accent-soft: #1a1217;
+  --pc-accent-line: #3a2130;
+  --pc-ok: #7fae86;
+  --pc-warn: #cfae7e;
+}
+
+:root:not(.dark) {
+  --pc-ground: #f6f6f4;
+  --pc-panel: #ffffff;
+  --pc-panel-2: #fbfbf9;
+  --pc-sunk: #f1f1ee;
+  --pc-edge: #e3e3de;
+  --pc-edge-soft: #ededea;
+  --pc-ink: #17171a;
+  --pc-ink-2: #3e3e45;
+  --pc-ink-soft: #74747c;
+  --pc-ink-faint: #a4a4ac;
+  --pc-accent: #c92572;
+  --pc-accent-soft: #fdf1f6;
+  --pc-accent-line: #f0cfdf;
+  --pc-ok: #3d7a4c;
+  --pc-warn: #8a6a2c;
+}
+
+/* ── Type ───────────────────────────────────────────────────────────────────
+ * The whole look lives here. Plex Sans at 300 with the tracking pulled in reads as a drawn page
+ * rather than a default one, and it is the face the product already speaks in.
+ */
+
+body {
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#content-area h1,
+#page-title {
+  font-weight: 500 !important;
+  font-size: 2.35rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.028em !important;
+  color: var(--pc-ink) !important;
+}
+
+/* The eyebrow: the group this page is in. Small, spaced, and the one place the accent appears
+   before the reader has selected anything. */
+#header .eyebrow {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+  color: var(--pc-accent) !important;
+}
+
+/* The blurb under the title. */
+#header .text-lg.prose p {
+  font-size: 1.06rem !important;
+  font-weight: 300 !important;
+  line-height: 1.6 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--pc-ink-soft) !important;
+  max-width: 56ch;
+}
+
+.mdx-content h2 {
+  font-weight: 500 !important;
+  font-size: 1.42rem !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.022em !important;
+  color: var(--pc-ink) !important;
+  margin-top: 3.4rem !important;
+  margin-bottom: 1rem !important;
+  padding-top: 0.2rem;
+}
+
+.mdx-content h3 {
+  font-weight: 500 !important;
+  font-size: 1.08rem !important;
+  letter-spacing: -0.018em !important;
+  color: var(--pc-ink) !important;
+  margin-top: 2.2rem !important;
+}
+
+.mdx-content h4 {
+  font-weight: 500 !important;
+  font-size: 0.96rem !important;
+  color: var(--pc-ink-2) !important;
+}
+
+.mdx-content p,
+.mdx-content li,
+.mdx-content [data-as="p"] {
+  font-weight: 300 !important;
+  font-size: 0.975rem !important;
+  line-height: 1.68 !important;
+  letter-spacing: -0.011em !important;
+  color: var(--pc-ink-2) !important;
+}
+
+.mdx-content strong,
+.mdx-content b {
+  font-weight: 500 !important;
+  color: var(--pc-ink) !important;
+}
+
+/* A rule is a breath between sections, not a line to look at. */
+.mdx-content hr {
+  border: none !important;
+  border-top: 1px solid var(--pc-edge-soft) !important;
+  margin: 3.6rem 0 !important;
+}
+
+/* Inline code: what a machine wrote, at the same optical size as the prose around it. */
+.mdx-content code {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 0.83em !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+  color: var(--pc-ink) !important;
+  background: var(--pc-sunk) !important;
+  border: 1px solid var(--pc-edge-soft);
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+}
+
+.mdx-content a {
+  color: var(--pc-ink) !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid var(--pc-accent-line) !important;
+  transition: border-color 0.15s ease;
+}
+.mdx-content a:hover { border-bottom-color: var(--pc-accent) !important; }
+.mdx-content a code { color: var(--pc-ink) !important; }
+
+/* ── The shell ──────────────────────────────────────────────────────────────── */
+
+/* Wider than the default 36rem: these pages carry field tables and terminal output, and a
+   40-character column turns every one of them into a scroll. */
+#content-area.max-w-xl { max-width: 54rem !important; }
+
+@media (min-width: 1024px) {
+  #content-container:has(> .flex.flex-row-reverse > #content-area.max-w-xl) {
+    padding-left: 3rem !important;
+    padding-right: 1.5rem !important;
+  }
+  #content-container > .flex.flex-row-reverse:has(> #content-area.max-w-xl) { column-gap: 2rem !important; }
+  #content-container > .flex.flex-row-reverse > #content-area.max-w-xl { max-width: 58rem !important; }
+}
+
+/* The navbar: tabs centred as pills, the way a product with three surfaces reads. */
+#navbar .nav-tabs { gap: 6px !important; }
+
+.nav-tabs-item {
+  padding: 7px 16px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: 999px !important;
+  height: auto !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+.nav-tabs-item .absolute { display: none !important; }
+.nav-tabs-item:hover { background: var(--pc-panel-2) !important; }
+.dark .nav-tabs-item.dark\:text-gray-200,
+.nav-tabs-item.text-gray-800 {
+  background: var(--pc-accent-soft) !important;
+  color: var(--pc-accent) !important;
+}
+
+/* ── The rail ───────────────────────────────────────────────────────────────── */
+
+.sidebar-group-header {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.13em !important;
+  text-transform: uppercase !important;
+  color: var(--pc-ink-faint) !important;
+}
+
+.sidebar-group a,
+.sidebar-group button[aria-expanded] {
+  font-size: 13.5px !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.008em !important;
+  color: var(--pc-ink-soft) !important;
+  border-radius: 7px !important;
+  transition: background-color 0.12s ease, color 0.12s ease !important;
+}
+
+.sidebar-group a:hover,
+.sidebar-group button[aria-expanded]:hover {
+  background: var(--pc-panel-2) !important;
+  color: var(--pc-ink) !important;
+}
+
+/* Selected: the console's own signal — a hairline of accent at the left edge, not a filled pill. */
+.sidebar-group a[aria-current="page"],
+.sidebar-group a.bg-primary\/10 {
+  background: var(--pc-accent-soft) !important;
+  color: var(--pc-accent) !important;
+  font-weight: 400 !important;
+  box-shadow: inset 2px 0 0 var(--pc-accent) !important;
+  border-radius: 2px 7px 7px 2px !important;
+}
+
+#search-bar-entry {
+  border-radius: 9px !important;
+  font-weight: 300 !important;
+  font-size: 13.5px !important;
+}
+
+/* ── On this page ───────────────────────────────────────────────────────────── */
+
+#table-of-contents > button span {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--pc-ink-faint) !important;
+}
+
+#table-of-contents-content {
+  border-left: 1px solid var(--pc-edge-soft) !important;
+}
+
+.toc-item a {
+  font-size: 12.5px !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.008em !important;
+  line-height: 1.5 !important;
+  color: var(--pc-ink-soft) !important;
+  border-left: 2px solid transparent !important;
+  margin-left: -1px !important;
+  padding: 6px 0 6px 14px !important;
+}
+.toc-item a:hover { color: var(--pc-ink) !important; }
+.toc-item a.text-primary,
+.toc-item a.border-primary,
+.dark .toc-item a.dark\:text-primary-light {
+  color: var(--pc-accent) !important;
+  border-left-color: var(--pc-accent) !important;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────────
+ * Hairlines under rows and nothing else. A field table is read down a column, and every vertical
+ * border is a line the eye has to cross to do it.
+ */
+
+.mdx-content .table { border-collapse: collapse !important; }
+.mdx-content .table tr { background: transparent !important; }
+
+.mdx-content .table th {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--pc-ink-faint) !important;
+  padding: 0 1.1rem 0.6rem 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--pc-edge) !important;
+  white-space: nowrap;
+}
+
+.mdx-content .table td {
+  font-size: 0.9rem !important;
+  font-weight: 300 !important;
+  line-height: 1.6 !important;
+  color: var(--pc-ink-2) !important;
+  padding: 0.7rem 1.1rem 0.7rem 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--pc-edge-soft) !important;
+  vertical-align: top;
+}
+
+.mdx-content .table tbody tr:last-child td { border-bottom: none !important; }
+.mdx-content .table td:first-child code { white-space: nowrap; }
+
+/* ── Callouts ───────────────────────────────────────────────────────────────── */
+
+.mdx-content .callout {
+  border-radius: 10px !important;
+  border-width: 1px !important;
+  padding: 0.95rem 1.2rem !important;
+  gap: 0.8rem !important;
+}
+
+.mdx-content .callout [data-component-part="callout-content"],
+.mdx-content .callout [data-component-part="callout-content"] p {
+  font-size: 0.9rem !important;
+  font-weight: 300 !important;
+  line-height: 1.6 !important;
+}
+
+.callout[data-callout-type="note"],
+.callout[data-callout-type="info"] {
+  background: var(--pc-panel-2) !important;
+  border-color: var(--pc-edge) !important;
+}
+.callout[data-callout-type="note"] [data-component-part="callout-content"],
+.callout[data-callout-type="info"] [data-component-part="callout-content"],
+.callout[data-callout-type="note"] svg,
+.callout[data-callout-type="info"] svg { color: var(--pc-ink-2) !important; }
+
+.callout[data-callout-type="tip"],
+.callout[data-callout-type="check"] {
+  background: color-mix(in srgb, var(--pc-ok) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--pc-ok) 26%, transparent) !important;
+}
+.callout[data-callout-type="tip"] [data-component-part="callout-content"],
+.callout[data-callout-type="check"] [data-component-part="callout-content"],
+.callout[data-callout-type="tip"] svg,
+.callout[data-callout-type="check"] svg { color: var(--pc-ok) !important; }
+
+.callout[data-callout-type="warning"] {
+  background: color-mix(in srgb, var(--pc-warn) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--pc-warn) 26%, transparent) !important;
+}
+.callout[data-callout-type="warning"] [data-component-part="callout-content"],
+.callout[data-callout-type="warning"] svg { color: var(--pc-warn) !important; }
+
+/* ── Steps ──────────────────────────────────────────────────────────────────── */
+
+[data-component-part="step-line"] {
+  width: 1px !important;
+  background: var(--pc-edge) !important;
+  background-image: none !important;
+}
+
+[data-component-part="step-number"] > div:first-child {
+  background: var(--pc-panel-2) !important;
+  border: 1px solid var(--pc-edge) !important;
+  color: var(--pc-ink-2) !important;
+  font-family: "IBM Plex Mono", monospace !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+[data-component-part="step-title"] {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--pc-ink) !important;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────────── */
+
+.mdx-content .card {
+  background: var(--pc-panel) !important;
+  border: 1px solid var(--pc-edge) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.15s ease;
+}
+.mdx-content .card:hover { border-color: var(--pc-accent-line) !important; }
+
+.mdx-content .card h2,
+.mdx-content [data-component-part="card-title"] {
+  font-size: 0.98rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.015em !important;
+  margin-top: 0.9rem !important;
+  color: var(--pc-ink) !important;
+}
+
+.mdx-content [data-component-part="card-content"],
+.mdx-content [data-component-part="card-content"] p {
+  font-size: 0.875rem !important;
+  font-weight: 300 !important;
+  line-height: 1.55 !important;
+  color: var(--pc-ink-soft) !important;
+}
+
+/* The plate on a card with an image: full bleed, square to the card's own corners. */
+.mdx-content .card img {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: block;
+  width: 100%;
+}
+
+/* ── Code ───────────────────────────────────────────────────────────────────── */
+
+.mdx-content .code-block,
+.mdx-content .code-group {
+  border-radius: 10px !important;
+  border: 1px solid var(--pc-edge) !important;
+  background: var(--pc-panel) !important;
+}
+
+.mdx-content pre.shiki,
+.mdx-content .code-block-background {
+  background: var(--pc-sunk) !important;
+}
+
+.mdx-content pre code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace !important;
+  font-size: 12.6px !important;
+  line-height: 1.75 !important;
+  letter-spacing: -0.005em;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+[data-component-part="code-block-header"],
+[data-component-part="code-block-header-filename"] {
+  font-family: "IBM Plex Mono", monospace !important;
+  font-size: 11.5px !important;
+  color: var(--pc-ink-faint) !important;
+}
+
+/* A screenshot is a document, not a photo: one hairline, no shadow, no rounded photo frame. */
+.mdx-content [data-component-part="frame"],
+.mdx-content .frame img {
+  border-radius: 8px !important;
+  border: 1px solid var(--pc-edge) !important;
+  box-shadow: none !important;
+}
+
+/* ── Pagination and footer ──────────────────────────────────────────────────── */
+
+#pagination a {
+  border-radius: 10px !important;
+  border-color: var(--pc-edge) !important;
+}
+#pagination a:hover { border-color: var(--pc-accent-line) !important; }
+[data-component-part="pagination-title"] {
+  font-weight: 400 !important;
+  font-size: 0.93rem !important;
+  color: var(--pc-ink) !important;
+}
+[data-component-part="pagination-label"] { font-weight: 300 !important; }
+
+#footer { border-top-color: var(--pc-edge-soft) !important; }
