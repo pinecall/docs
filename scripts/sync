@@ -1,0 +1,374 @@
+#!/usr/bin/env python3
+"""The pages, taken from the three repos. This site writes no prose of its own.
+
+Every page here is a `.md` that lives beside the code it describes, so editing the code and
+editing its page is one commit. Run this, and the site is what the repos say today.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent.parent
+TREES = HERE.parent  # ~/pinecall-v2
+
+
+@dataclass(frozen=True)
+class Page:
+    """One markdown file, and where it lands on the site."""
+
+    source: str          # <repo>/<path>, relative to ~/pinecall-v2
+    at: str              # the site path, without .mdx
+    title: str
+    blurb: str
+
+
+PAGES: tuple[Page, ...] = (
+    # ── Get started ────────────────────────────────────────────────────────────
+    Page("runtime/docs/from-zero.md", "start/from-zero",
+         "From zero",
+         "Three clones, a database and an agent answering — every command run in order, with the output it returned."),
+    Page("agents/docs/tutorial.md", "start/tutorial",
+         "Write your first agent",
+         "The class, its tools and its view, built one step at a time."),
+    Page("agents/docs/worlds-and-teams.md", "start/worlds-and-teams",
+         "The two worlds",
+         "Production and sandbox, who holds which, and what a laptop's key opens."),
+
+    # ── Write an agent ─────────────────────────────────────────────────────────
+    Page("agents/docs/writing-an-agent.md", "agent/writing-an-agent",
+         "The class",
+         "Fields are the state, @tool methods are what the model may do, docstrings are the prompt."),
+    Page("agents/docs/the-prompt.md", "agent/the-prompt",
+         "The prompt",
+         "Named blocks in two regions: the cached static prefix, the history, and the view."),
+    Page("agents/docs/testing-an-agent.md", "agent/testing-an-agent",
+         "Testing an agent",
+         "The rings: goldens in this process, a live persona, and a real call re-judged."),
+    Page("agents/docs/testing-memory-and-knowledge.md", "agent/memory-and-knowledge",
+         "Memory and knowledge",
+         "What the agent remembers about a contact, and the base it answers from."),
+
+    # ── Operate ────────────────────────────────────────────────────────────────
+    Page("agents/docs/the-cli.md", "operate/the-cli",
+         "pinecall",
+         "Every verb of the CLI a tenant runs: the agent, its calls, its pipeline and its line."),
+    Page("runtime/docs/the-runtime-cli.md", "operate/the-runtime-cli",
+         "pinecall-runtime",
+         "Every verb of the CLI an operator runs: the gateway, the worker, the orgs, the keys."),
+    Page("runtime/docs/multi-tenancy.md", "operate/multi-tenancy",
+         "Orgs, people and keys",
+         "Who may see what, how a person is invited, and what each scope opens."),
+
+    # ── Run it ─────────────────────────────────────────────────────────────────
+    Page("runtime/docs/a-box-in-production.md", "run/a-box-in-production",
+         "A box in production",
+         "One machine with a domain, from an operating system — with a screenshot of every screen."),
+    Page("runtime/infra/box/README.md", "run/the-declared-box",
+         "The declared box",
+         "cloud-init, the units, the Quadlets, the fence and the credentials a box is made of."),
+    Page("runtime/infra/README.md", "run/infrastructure",
+         "Infrastructure",
+         "The dev stack, the images this repo builds, and what runs where."),
+    Page("runtime/infra/fleet/README.md", "run/the-fleet",
+         "The fleet",
+         "More than one worker: what `fleet list` shows and what `cordon` does."),
+    Page("runtime/docs/scaling.md", "run/scaling",
+         "Scaling",
+         "What each process costs, where it saturates, and the numbers measured on this stack."),
+
+    # ── Reference · the gateway's doors ────────────────────────────────────────
+    Page("runtime/docs/protocol/every-door.md", "api/every-door",
+         "Every door",
+         "The whole HTTP surface in one table: the path, the method, and the scope it asks for."),
+    Page("runtime/docs/protocol/gateway-api.md", "api/gateway",
+         "Gateway API",
+         "The tenant's doors: agents, calls, sessions, knowledge and memory."),
+    Page("runtime/docs/protocol/operator-api.md", "api/operator",
+         "Operator API",
+         "The box's own doors: orgs, people, keys, plans and the fleet."),
+    Page("runtime/docs/protocol/tokens.md", "api/tokens",
+         "Tokens",
+         "How a browser and a phone get a token, and what each one may do with it."),
+    Page("runtime/docs/protocol/people.md", "api/people",
+         "People",
+         "Invitations, sign-in, and the key a terminal keeps."),
+    Page("runtime/docs/protocol/numbers.md", "api/numbers",
+         "Numbers",
+         "A number belongs to an org and points at one agent in one world."),
+    Page("runtime/docs/protocol/pipeline-api.md", "api/pipeline",
+         "Pipeline",
+         "The six knobs an operator turns over what an agent hears, decides and speaks with."),
+    Page("runtime/docs/protocol/provider-keys.md", "api/provider-keys",
+         "Provider keys",
+         "An org bringing its own vendor keys, and where they are kept."),
+    Page("runtime/docs/protocol/projections.md", "api/projections",
+         "Projections",
+         "What a call's log reduces to, and who is allowed to read each field."),
+    Page("runtime/docs/protocol/dev-verbs.md", "api/dev-verbs",
+         "Dev verbs",
+         "The doors that exist only so a developer can drive a call by hand."),
+
+    # ── Reference · the wire ───────────────────────────────────────────────────
+    Page("protocol/docs/README.md", "wire/overview",
+         "The wire",
+         "One schema, generated into Python, TypeScript and Ruby, so the three cannot disagree."),
+    Page("protocol/docs/shapes.md", "wire/shapes",
+         "Shapes",
+         "Every entity the wire carries, field by field."),
+    Page("protocol/docs/commands.md", "wire/commands",
+         "Commands",
+         "What an app may ask the gateway to do, over the socket."),
+    Page("protocol/docs/events.md", "wire/events",
+         "Events",
+         "How an event is shaped, and the four families it can belong to."),
+    Page("protocol/docs/events-call.md", "wire/events-call",
+         "Call events",
+         "Everything that happens inside one call, in the order it happened."),
+    Page("protocol/docs/events-app.md", "wire/events-app",
+         "App events",
+         "What the app says to the gateway and what comes back."),
+    Page("protocol/docs/events-control.md", "wire/events-control",
+         "Control events",
+         "The events that move a call rather than describe it."),
+    Page("protocol/docs/events-room.md", "wire/events-room",
+         "Room events",
+         "What LiveKit's room reports, and which parts reach the log."),
+    Page("protocol/docs/state.md", "wire/state",
+         "State",
+         "The reducer: one log in, one state out, the same in both languages."),
+    Page("protocol/docs/metrics.md", "wire/metrics",
+         "Metrics",
+         "What a call measures about itself, and what each number means."),
+    Page("protocol/docs/livekit-metrics.md", "wire/livekit-metrics",
+         "LiveKit metrics",
+         "The numbers livekit-agents reports, and how they reach a call's summary."),
+    Page("protocol/docs/projections.md", "wire/projections",
+         "Projections",
+         "The reductions the wire defines, shared by every language."),
+
+    # ── Reference · how it is built ────────────────────────────────────────────
+    Page("runtime/ARCHITECTURE.md", "inside/runtime",
+         "Inside the runtime",
+         "Eighteen packages, the import table, and the path a call takes through them."),
+    Page("agents/ARCHITECTURE.md", "inside/agents",
+         "Inside the framework",
+         "Six directories, the console it serves, and the rules the tests enforce."),
+    Page("runtime/docs/security/prompt-injection.md", "inside/prompt-injection",
+         "Prompt injection",
+         "What a lookup returns never becomes part of the prompt. The contract, and why."),
+    Page("runtime/docs/retrieval/spec.md", "inside/retrieval",
+         "Retrieval",
+         "How memory and the knowledge base are embedded, searched and fused."),
+)
+
+# Where an in-repo link points, once the page is on the site.
+BY_SOURCE = {page.source: page.at for page in PAGES}
+# The same, keyed by the file name alone, for sibling links like [the-cli.md](the-cli.md).
+BY_NAME: dict[str, list[str]] = {}
+for page in PAGES:
+    BY_NAME.setdefault(Path(page.source).name, []).append(page.at)
+
+
+def main() -> int:
+    """Copy every page in, rewrite what only made sense inside a repo, and report."""
+    missing = [page.source for page in PAGES if not (TREES / page.source).is_file()]
+    if missing:
+        print("these sources are not there:", *missing, sep="\n  ", file=sys.stderr)
+        return 1
+
+    for folder in ("start", "agent", "operate", "run", "api", "wire", "inside", "images"):
+        shutil.rmtree(HERE / folder, ignore_errors=True)
+
+    for page in PAGES:
+        body = (TREES / page.source).read_text(encoding="utf-8")
+        landing = HERE / f"{page.at}.mdx"
+        landing.parent.mkdir(parents=True, exist_ok=True)
+        landing.write_text(_as_mdx(page, body), encoding="utf-8")
+
+    copied = _copy_images()
+    print(f"{len(PAGES)} pages, {copied} images")
+    return 0
+
+
+def _as_mdx(page: Page, body: str) -> str:
+    """One repo's markdown as one Mintlify page: frontmatter, no repeated H1, links that work."""
+    body = _drop_the_title(body)
+    body = _links(body, Path(page.source).parent)
+    body = _images(body)
+    body = _escape_for_mdx(body)
+    front = "\n".join((
+        "---",
+        f'title: "{page.title}"',
+        f'description: "{page.blurb}"',
+        # The page a reader edits is the one in the repo, never this copy.
+        f'"og:see_also": "https://github.com/pinecall/{page.source}"',
+        "---",
+        "",
+    ))
+    return front + body.lstrip("\n")
+
+
+def _drop_the_title(body: str) -> str:
+    """Mintlify draws the H1 from the frontmatter; a second one reads as a repeated heading."""
+    return re.sub(r"\A(?:\s*\n)*# .*\n", "", body, count=1)
+
+
+def _links(body: str, home: Path) -> str:
+    """A link that meant one repo's file has to mean this site's path, or it 404s."""
+
+    def moved(match: re.Match[str]) -> str:
+        text, target = match.group(1), match.group(2)
+        if target.startswith(("http", "#", "mailto:")):
+            return match.group(0)
+        anchor = ""
+        if "#" in target:
+            target, anchor = target.split("#", 1)
+            anchor = "#" + anchor
+        if not target:
+            return match.group(0)
+        here = str((home / target).as_posix()).replace("../", "")
+        for candidate in (here, str(Path(home, target).as_posix())):
+            if candidate in BY_SOURCE:
+                return f"[{text}](/{BY_SOURCE[candidate]}{anchor})"
+        where = BY_NAME.get(Path(target).name)
+        if where and len(where) == 1:
+            return f"[{text}](/{where[0]}{anchor})"
+        # Not a page here — send the reader to the file itself, on GitHub.
+        repo, _, rest = str((home / target).as_posix()).partition("/")
+        return f"[{text}](https://github.com/pinecall/{repo}/blob/main/{rest}{anchor})"
+
+    return re.sub(r"\[([^\]]*)\]\(([^)\s]+)\)", moved, body)
+
+
+# A `<picture>` with `prefers-color-scheme` follows the OPERATING SYSTEM, which is right in a
+# markdown file on GitHub and wrong here: this site has its own light/dark toggle, and an image
+# that ignores it shows a white screenshot on a dark page. Mintlify's two-image pattern follows
+# the toggle. MDX is JSX besides, so every void tag has to close itself.
+PICTURE = re.compile(
+    r"<picture>\s*"
+    r"<source\s+srcset=\"([^\"]+)\"[^>]*>\s*"
+    r"<img\s+src=\"([^\"]+)\"\s+alt=\"([^\"]*)\"[^>]*>\s*"
+    r"</picture>",
+    re.S,
+)
+
+
+def _images(body: str) -> str:
+    """The screenshots travel with the page, and follow this site's theme rather than the OS's."""
+    body = body.replace("docs/images/", "/images/")
+    body = re.sub(r"(?<!/)(?<!\w)images/", "/images/", body)
+    body = body.replace("//images/", "/images/")
+
+    def framed(match: re.Match[str]) -> str:
+        dark, light, alt = match.group(1), match.group(2), match.group(3)
+        return (
+            "<Frame>\n"
+            f'  <img src="{light}" alt="{alt}" className="block dark:hidden" />\n'
+            f'  <img src="{dark}" alt="{alt}" className="hidden dark:block" />\n'
+            "</Frame>"
+        )
+
+    return PICTURE.sub(framed, body)
+
+
+# MDX reads `{` as an expression and `<` as a tag. Inside code that is fine; in prose it is a build
+# error on a page whose markdown was never written for MDX. So the code has to be found exactly —
+# a fence that pairs by its own length, and an inline span that may run over a line break and may
+# be opened by any number of backticks. A cheaper `` `[^`\n]*` `` gets both of those wrong, and the
+# two pages it got wrong were the two that failed to build.
+FENCE_OPENS = re.compile(r"^(?P<indent>[ \t]*)(?P<bars>`{3,}|~{3,})(?P<info>[^\n]*)$")
+
+
+def _code_and_prose(body: str) -> list[tuple[bool, str]]:
+    """The document cut into runs, each marked: True is code and is never touched."""
+    out: list[tuple[bool, str]] = []
+    lines = body.split("\n")
+    at, prose = 0, []
+    while at < len(lines):
+        opening = FENCE_OPENS.match(lines[at])
+        if opening:
+            block = [lines[at]]
+            bars = opening.group("bars")
+            at += 1
+            while at < len(lines):
+                block.append(lines[at])
+                closing = FENCE_OPENS.match(lines[at])
+                at += 1
+                if closing and closing.group("bars")[0] == bars[0] and len(closing.group("bars")) >= len(bars) and not closing.group("info").strip():
+                    break
+            out.append((False, "\n".join(prose) + ("\n" if prose else "")))
+            prose = []
+            out.append((True, "\n".join(block) + "\n"))
+            continue
+        prose.append(lines[at])
+        at += 1
+    out.append((False, "\n".join(prose)))
+    return [(code, text) for code, text in out if text]
+
+
+SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.S)
+
+
+def _escape_for_mdx(body: str) -> str:
+    """Leave code exactly as it is; make prose safe for the MDX parser."""
+    return "".join(
+        text if is_code else _outside_spans(text)
+        for is_code, text in _code_and_prose(body)
+    )
+
+
+def _outside_spans(text: str) -> str:
+    """Tame the prose around every inline code span, and the spans a table would split."""
+    out, last = [], 0
+    for span in SPAN.finditer(text):
+        out.append(_tame(text[last:span.start()]))
+        out.append(_span_safe(span.group(0)))
+        last = span.end()
+    out.append(_tame(text[last:]))
+    return "".join(out)
+
+
+def _span_safe(span: str) -> str:
+    """Two things a code span survives in markdown and does not survive here."""
+    # A `|` inside a code span still splits a table cell: GFM cuts cells before it parses inline.
+    span = span.replace("|", "\\|")
+    # A code span may run over a line break, and CommonMark says that break IS a space. MDX does not
+    # shield it: braces on the second line reach the expression parser and the page will not build.
+    return re.sub(r"\s*\n\s*", " ", span)
+
+
+# The only tags this site emits. Everything else that looks like a tag in these files is prose a
+# person wrote — `&lt;slug&gt;` in a usage line, a generic in a field list — and MDX would read each
+# of them as an unclosed JSX element and refuse the page.
+OURS = (
+    "Frame", "img", "Note", "Tip", "Warning", "Info", "Card", "Columns", "Steps", "Step",
+    "Accordion", "AccordionGroup", "Tabs", "Tab", "CodeGroup", "Update", "br", "details", "summary",
+)
+A_TAG = re.compile(r"<(?!/?(?:" + "|".join(OURS) + r")\b)")
+
+
+def _tame(prose: str) -> str:
+    """Prose only — never a fence, never an inline span."""
+    # `<!-- generated:begin -->` marks what the schema wrote. MDX has no HTML comments, and the
+    # marker means nothing to a reader.
+    prose = re.sub(r"<!--.*?-->", "", prose, flags=re.S)
+    prose = A_TAG.sub("&lt;", prose)
+    return prose.replace("{", "&#123;").replace("}", "&#125;")
+
+
+def _copy_images() -> int:
+    """Only what a page actually shows."""
+    source = TREES / "runtime/docs/images"
+    if not source.is_dir():
+        return 0
+    shutil.copytree(source, HERE / "images")
+    return sum(1 for _ in (HERE / "images").rglob("*.png"))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

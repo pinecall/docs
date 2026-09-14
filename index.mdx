@@ -1,0 +1,107 @@
+---
+title: "A voice agent is a class"
+description: "Its fields are the state of the call, its @tool methods are what the model may do, and the docstring of each one is what the model reads to choose it. It answers by web, WhatsApp and telephone, and it runs on your own machine."
+---
+
+```tsx clinica-norte/agent.tsx
+export default class ClinicaNorte extends Agent {
+  phone = "+34910000000";
+  language = "es";
+
+  stage: Stages<"identify" | "choose" | "book"> = "identify";
+  patient?: Patient;
+  slot?: Slot;
+
+  /** Busca al paciente por nombre y teléfono. Pide los dos antes de llamarla. */
+  @tool({ stage: "identify" })
+  async findPatient(name: string, phone: string) {
+    this.patient = await patients.find(name, phone);
+    this.stage = this.patient ? "choose" : "identify";
+  }
+}
+```
+
+<Note>
+  **Every command in these pages was run.** What you see under each one is what came back, in that
+  order, on a clean machine — the refusals too, because that is the half you actually meet.
+</Note>
+
+## The four pieces
+
+<Columns cols={2}>
+  <Card title="runtime" icon="server" href="/inside/runtime">
+    The gateway and the worker: one distribution, two processes, on LiveKit. It holds the log, the
+    keys, the tenants and the judges — never the conversation.
+
+    `pip install pinecall`
+  </Card>
+
+  <Card title="agents" icon="code" href="/agent/writing-an-agent">
+    The class you write, its CLI and the console that CLI serves. This is where what the agent says
+    and does lives.
+
+    `npm i -g pinecall`
+  </Card>
+
+  <Card title="protocol" icon="git-compare-arrows" href="/wire/overview">
+    One schema, generated into Python, TypeScript and Ruby, so the three ends cannot disagree about
+    a field.
+
+    `npm i @pinecall/protocol`
+  </Card>
+
+  <Card title="the console" icon="monitor" href="/run/a-box-in-production">
+    Live calls, their logs, the numbers, the team and what it cost. Served by the same gateway —
+    `pinecall run` prints the URL that signs you in.
+  </Card>
+</Columns>
+
+## Five minutes
+
+<Steps>
+  <Step title="Install both halves">
+    ```bash
+    pip install pinecall     # pinecall-runtime: the gateway, the worker, migrate, doctor
+    npm i -g pinecall        # pinecall: the CLI, and the console it serves
+    ```
+  </Step>
+
+  <Step title="The schema, and the first person on this box">
+    ```console
+    $ pinecall-runtime migrate up
+    applied 0001_call_log.sql … applied 0023_sandbox.sql
+
+    $ pinecall-runtime init --email you@example.test --person "You"
+    m_8c4da7e9373d  you@example.test  admin  runs this box
+      http://127.0.0.1:8080/invitations/inv_…
+    ```
+  </Step>
+
+  <Step title="The agent, and a written call against it">
+    ```console
+    $ pinecall run
+    clinica-norte · default · sandbox · tools 5 · doors phone, whatsapp, web
+
+    $ pinecall chat
+    ‹ hola, quería una cita con el fisio
+    › Clínica Norte, buenos días. ¿En qué puedo ayudarle?
+    ```
+  </Step>
+</Steps>
+
+<Card title="From zero, with every output" icon="terminal" href="/start/from-zero" horizontal>
+  The whole walkthrough — three clones, the dev stack, a database, a person, a key and an agent
+  answering. Run end to end on a machine that had never seen the code.
+</Card>
+
+## What you need
+
+| role | default | variable | where the key comes from |
+| --- | --- | --- | --- |
+| `llm` | Anthropic, `claude-haiku-4-5` | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| `stt` | Soniox | `SONIOX_API_KEY` | [console.soniox.com](https://console.soniox.com) |
+| `tts` | ElevenLabs, `eleven_flash_v2_5` | `ELEVEN_API_KEY` | [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) |
+| embeddings | the `tei` container | — | nothing to buy — it runs locally |
+
+The first row is the only one you need to start: the text session builds no ears and no voice, so
+an `ANTHROPIC_API_KEY` alone carries you to [Spoken calls](/start/from-zero#spoken-calls).

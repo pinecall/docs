@@ -1,0 +1,170 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Pinecall",
+  "description": "Write a voice agent as a class: its fields are the state, its @tool methods are what the model may do, and its docstrings are the prompt. It answers by web, WhatsApp and telephone, and runs on your own machine.",
+  "colors": {
+    "primary": "#c92572",
+    "light": "#f0569a",
+    "dark": "#17171a"
+  },
+  "background": {
+    "color": {
+      "light": "#f6f6f4",
+      "dark": "#0d0d0f"
+    }
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "fonts": {
+    "heading": {
+      "family": "IBM Plex Sans",
+      "weight": 500
+    },
+    "body": {
+      "family": "IBM Plex Sans",
+      "weight": 400
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "/"
+  },
+  "favicon": "/favicon.svg",
+  "styling": {
+    "codeblocks": "system"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "search": {
+    "prompt": "Search the docs"
+  },
+  "banner": {
+    "content": "v0.1.0 is out: `pip install pinecall` and `npm i -g pinecall`.",
+    "dismissible": true
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/pinecall/runtime"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/pinecall"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "index",
+              "start/from-zero",
+              "start/tutorial",
+              "start/worlds-and-teams"
+            ]
+          },
+          {
+            "group": "Write an agent",
+            "pages": [
+              "agent/writing-an-agent",
+              "agent/the-prompt",
+              "agent/testing-an-agent",
+              "agent/memory-and-knowledge"
+            ]
+          },
+          {
+            "group": "Operate",
+            "pages": [
+              "operate/the-cli",
+              "operate/the-runtime-cli",
+              "operate/multi-tenancy"
+            ]
+          },
+          {
+            "group": "Run it",
+            "pages": [
+              "run/a-box-in-production",
+              "run/the-declared-box",
+              "run/infrastructure",
+              "run/the-fleet",
+              "run/scaling"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "The gateway",
+            "pages": [
+              "api/every-door",
+              "api/gateway",
+              "api/operator",
+              "api/tokens",
+              "api/people",
+              "api/numbers",
+              "api/pipeline",
+              "api/provider-keys",
+              "api/projections",
+              "api/dev-verbs"
+            ]
+          },
+          {
+            "group": "The wire",
+            "pages": [
+              "wire/overview",
+              "wire/shapes",
+              "wire/commands",
+              "wire/events",
+              "wire/events-call",
+              "wire/events-app",
+              "wire/events-control",
+              "wire/events-room",
+              "wire/state",
+              "wire/metrics",
+              "wire/livekit-metrics",
+              "wire/projections"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Internals",
+        "groups": [
+          {
+            "group": "How it is built",
+            "pages": [
+              "inside/runtime",
+              "inside/agents",
+              "inside/prompt-injection",
+              "inside/retrieval"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "icon": "github",
+          "href": "https://github.com/pinecall"
+        },
+        {
+          "anchor": "Changelog",
+          "icon": "clock",
+          "href": "https://github.com/pinecall/runtime/blob/main/CHANGELOG.md"
+        }
+      ]
+    }
+  }
+}
