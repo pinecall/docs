@@ -274,6 +274,29 @@ body {
  * border is a line the eye has to cross to do it.
  */
 
+/* Mintlify hangs a table on negative margins so a wide one can bleed past the column. The result
+   is that every table starts sixty pixels to the LEFT of the paragraph above it, and a page of
+   prose and field tables reads as two documents. A table is part of the column. */
+[data-table-wrapper="true"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* When one does overflow, it scrolls — and macOS hides an overlay scrollbar until you touch it,
+   so a wide table offers no sign that there is more. This bar is always drawn, and only appears
+   when the table actually does not fit. */
+[data-table-wrapper="true"]::-webkit-scrollbar { height: 7px; -webkit-appearance: none; }
+[data-table-wrapper="true"]::-webkit-scrollbar-track { background: transparent; }
+[data-table-wrapper="true"]::-webkit-scrollbar-thumb {
+  background-color: var(--pc-edge);
+  border-radius: 4px;
+}
+[data-table-wrapper="true"]:hover::-webkit-scrollbar-thumb { background-color: var(--pc-ink-faint); }
+
 .mdx-content .table { border-collapse: collapse !important; }
 .mdx-content .table tr { background: transparent !important; }
 
