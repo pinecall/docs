@@ -28,11 +28,11 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
+    "light": "/logo/on-light.png",
+    "dark": "/logo/on-dark.png",
     "href": "/"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "styling": {
     "codeblocks": "system"
   },
