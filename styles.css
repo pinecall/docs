@@ -496,3 +496,64 @@ div[role="status"][aria-live="polite"].fixed.cursor-grab {
 [data-component-part="pagination-label"] { font-weight: 300 !important; }
 
 #footer { border-top-color: var(--pc-edge-soft) !important; }
+
+/* ── The four pieces, on the home page ─────────────────────────────────────────
+ * One picture each, the piece's word set large over it, and the title and the sentence under it.
+ */
+.pc-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 24px;
+  margin: 22px 0 8px;
+}
+@media (max-width: 720px) {
+  .pc-cards { grid-template-columns: 1fr; }
+}
+#content-area a.link.pc-card,
+.mdx-content a.link.pc-card,
+.pc-card {
+  display: block;
+  text-decoration: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  padding-bottom: 0 !important;
+}
+.pc-card-art {
+  position: relative;
+  aspect-ratio: 1.7 / 1;
+  border-radius: 12px;
+  border: 1px solid var(--pc-edge);
+  background-color: #0e0f11;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pc-card-art span {
+  font-size: clamp(30px, 4.2vw, 46px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+.pc-card:hover .pc-card-art {
+  border-color: var(--pc-accent-line);
+  transform: translateY(-1px);
+}
+.pc-card-t {
+  margin-top: 14px;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--pc-ink-2);
+}
+.pc-card p {
+  margin: 6px 0 0 !important;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pc-ink-soft);
+}

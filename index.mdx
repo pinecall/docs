@@ -28,26 +28,36 @@ export default class ClinicaNorte extends Agent {
 
 ## The four pieces
 
-<Columns cols={2}>
-  <Card title="The gateway and the worker" img="/art/runtime.svg" href="/inside/runtime">
-    One distribution, two processes, on LiveKit. It holds the log, the keys, the tenants and the
-    judges — never the conversation.
-  </Card>
-
-  <Card title="The class you write" img="/art/agents.svg" href="/agent/writing-an-agent">
-    The framework, its CLI and the console that CLI serves. Where what the agent says and does
-    lives.
-  </Card>
-
-  <Card title="The contract" img="/art/protocol.svg" href="/wire/overview">
-    One schema, generated into Python, TypeScript and Ruby, so the three ends cannot disagree
-    about a field.
-  </Card>
-
-  <Card title="The console and the admin" img="/art/console.svg" href="/run/a-box-in-production">
-    Live calls, their logs, the numbers, the team and what it cost — served by the same gateway.
-  </Card>
-</Columns>
+<div className="pc-cards">
+  <a className="pc-card" href="/inside/runtime">
+    <div className="pc-card-art" style={{ backgroundImage: "url(/art/cards/runtime.webp)" }}>
+      <span>runtime</span>
+    </div>
+    <div className="pc-card-t">The gateway and the worker</div>
+    <p>One distribution, two processes, on LiveKit. It holds the log, the keys, the tenants and the judges — never the conversation.</p>
+  </a>
+  <a className="pc-card" href="/agent/writing-an-agent">
+    <div className="pc-card-art" style={{ backgroundImage: "url(/art/cards/agents.webp)" }}>
+      <span>agents</span>
+    </div>
+    <div className="pc-card-t">The class you write</div>
+    <p>The framework, its CLI and the console that CLI serves. Where what the agent says and does lives.</p>
+  </a>
+  <a className="pc-card" href="/wire/overview">
+    <div className="pc-card-art" style={{ backgroundImage: "url(/art/cards/protocol.webp)" }}>
+      <span>protocol</span>
+    </div>
+    <div className="pc-card-t">The contract</div>
+    <p>One schema, generated into Python, TypeScript and Ruby, so the three ends cannot disagree about a field.</p>
+  </a>
+  <a className="pc-card" href="/run/a-box-in-production">
+    <div className="pc-card-art" style={{ backgroundImage: "url(/art/cards/console.webp)" }}>
+      <span>console</span>
+    </div>
+    <div className="pc-card-t">The console and the admin</div>
+    <p>Live calls, their logs, the numbers, the team and what it cost — served by the same gateway.</p>
+  </a>
+</div>
 
 ## Five minutes
 
