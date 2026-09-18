@@ -18,9 +18,9 @@
   --pc-ink-2: #c9c9d0;
   --pc-ink-soft: #8b8b93;
   --pc-ink-faint: #5c5c66;
-  --pc-accent: #f0569a;
-  --pc-accent-soft: #1a1217;
-  --pc-accent-line: #3a2130;
+  --pc-accent: #8b6bff;
+  --pc-accent-soft: #15122a;
+  --pc-accent-line: #2a2350;
   --pc-ok: #7fae86;
   --pc-warn: #cfae7e;
 }
@@ -36,9 +36,9 @@
   --pc-ink-2: #3e3e45;
   --pc-ink-soft: #74747c;
   --pc-ink-faint: #a4a4ac;
-  --pc-accent: #c92572;
-  --pc-accent-soft: #fdf1f6;
-  --pc-accent-line: #f0cfdf;
+  --pc-accent: #5b3df5;
+  --pc-accent-soft: #f3f0ff;
+  --pc-accent-line: #d9d0ff;
   --pc-ok: #3d7a4c;
   --pc-warn: #8a6a2c;
 }
@@ -195,23 +195,32 @@ body {
   color: var(--pc-accent) !important;
 }
 
-/* ── The rail ───────────────────────────────────────────────────────────────── */
+/* ── The rail ───────────────────────────────────────────────────────────────── *
+ * A group reads as a heading, the way a good docs site does it: its name large and white, the
+ * pages under it plain and legible, and the page you are on a quiet filled row, not a colour.
+ */
 
 .sidebar-group-header {
-  font-size: 10.5px !important;
+  font-size: 19px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.13em !important;
-  text-transform: uppercase !important;
-  color: var(--pc-ink-faint) !important;
+  letter-spacing: -0.02em !important;
+  text-transform: none !important;
+  line-height: 1.2 !important;
+  color: var(--pc-ink) !important;
+  margin-top: 18px !important;
+  margin-bottom: 6px !important;
 }
 
 .sidebar-group a,
 .sidebar-group button[aria-expanded] {
-  font-size: 13.5px !important;
-  font-weight: 300 !important;
-  letter-spacing: -0.008em !important;
-  color: var(--pc-ink-soft) !important;
-  border-radius: 7px !important;
+  font-size: 14.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.45 !important;
+  color: var(--pc-ink-2) !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  border-radius: 9px !important;
   transition: background-color 0.12s ease, color 0.12s ease !important;
 }
 
@@ -221,14 +230,19 @@ body {
   color: var(--pc-ink) !important;
 }
 
-/* Selected: the console's own signal — a hairline of accent at the left edge, not a filled pill. */
 .sidebar-group a[aria-current="page"],
 .sidebar-group a.bg-primary\/10 {
-  background: var(--pc-accent-soft) !important;
-  color: var(--pc-accent) !important;
-  font-weight: 400 !important;
-  box-shadow: inset 2px 0 0 var(--pc-accent) !important;
-  border-radius: 2px 7px 7px 2px !important;
+  background: var(--pc-edge) !important;
+  color: var(--pc-ink) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  border-radius: 9px !important;
+}
+
+/* The export ships a draggable status toast, fixed bottom-left, meant for Mintlify's own preview.
+ * On a published site it is a stray box over the rail. */
+div[role="status"][aria-live="polite"].fixed.cursor-grab {
+  display: none !important;
 }
 
 #search-bar-entry {
