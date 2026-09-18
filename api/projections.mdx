@@ -52,7 +52,7 @@ The envelope keeps `seq`, `ts`, `type`, `ephemeral`.
 | `call.ended` | `reason` `ended_by` `ended_at` `duration_s` | status |
 | `user.state` `agent.state` | `state` | user_state, agent_state |
 | `user.transcript` | `text` `final` | live (the interim words, without the recognizer's confidence) |
-| `agent.transcript` | `speech_id` `text` `final` | live |
+| `agent.transcript` | `speech_id` `text` `final` — one **delta**, never the reply so far: a word with its timings in a voice call, one model token in a written one. `start` and `end` are dropped. The reducer joins every delta since the last `turn.agent` into `live.agent`; a `final` one clears it | live |
 | `turn.user` | `speech_id` `text` | turns |
 | `turn.agent` | `speech_id` `text` `interrupted` `metrics` — of the metrics, only `e2e_latency` | turns |
 | `room.opened` | `name` `sid` | room |

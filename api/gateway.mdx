@@ -99,7 +99,7 @@ the newest socket that takes unclaimed calls.
 **In the sandbox an agent is held per person.** The sandbox is namespaced by the member the key was
 minted for: two developers each run `tienda-sur` on their own laptop, and what each reaches — `GET /v1/agents`, `WS /v1/chat`, the config door, a suite — is their own socket. A sandbox key naming
 nobody (CI's) holds the org's own, which a person holding none falls back to. Production has one
-corner, because a person's key does not open `app` there (§7). A **dialled** door is the exception:
+corner, because a person's key does not open `app` there (§8). A **dialled** door is the exception:
 a number exists once in a world, and a ring reaches the caller's own copy or the agent's line (§3), even through a production number. **And somebody sees all of them**: `GET /v1/agents` answers a key that opens `team` one row per corner, each carrying `holder` (absent for the org's own), and the `pinecall-corner` header opens any of them.
 
 **Which world.** A key opens `production` or `sandbox`, and the agent this socket registers
@@ -232,8 +232,8 @@ serves it, `contact=<id>` to say who is calling (memory files the call under it)
 `POST /v1/tokens` takes `{agent, scope, contact?, ttl_s?, metadata?, participant_identity?}` and
 answers `{server_url, participant_token, call}` — or **`503`** when every worker of the fleet is
 full, with the numbers and the way out in the sentence (`every seat of the fleet is taken: 12 calls on 3 workers. Offer a call back — POST /v1/callbacks with the number — or try again in a minute.`) and `fleet.full` in the agent's log. Your page offers the visitor a call back **before**
-any room is made: `POST /v1/callbacks` with `{agent, number, contact?}` writes
-`callback.requested` onto the agent's log, and `GET /v1/callbacks[?agent=&after=]` is every
+any room is made: `POST /v1/callbacks` with `{agent, number, channel?, via?, call?}` writes
+`callback.requested` onto the agent's log and answers `204`, and `GET /v1/callbacks[?agent=&after=]` is every
 request your agents took, oldest first, for your app to dial. A phone caller who arrives when the
 fleet is full is answered by the overflow agent on the hub, hears one sentence, and lands on the
 same log the same way, `via: "overflow"`. The call id is minted **before** the browser
@@ -280,7 +280,7 @@ agent, one stream. Six more doors read a call without its log, or say where one 
 |---|---|
 | `GET /v1/calls/{call}/state` | the call reduced: who, where, the agent's state, the prompt, the room |
 | `GET /v1/agents/{slug}/sessions?limit=&q=&channel=&before=` | one line per call: when, how long, why it ended, the cost, the outcome, the verdict and the flags — filtered, counted and paged as [console-api.md](/api/console) §1 says. **The reader's corner's calls only** — the world and the holder the call was opened in, which its head row keeps (`0024`): a developer's sandbox key lists their own test calls, a production key the telephone's, and an admin with `pinecall-corner` the colleague's. A call from before `0024` reads as production's, the org's own |
-| `GET /v1/calls/{call}/recording` | the audio, with byte ranges so a player can seek |
+| `GET /v1/calls/{call}/recording` | the audio, with byte ranges so a player can seek. A written (chat) call keeps no recording and its `call.summary` points at none: `404` in a sentence |
 | `GET /v1/agents/{slug}/config` | what the agent declared, with the operator's overrides applied. `app` or `calls`: the worker and the console both read it |
 | `PUT/DELETE /v1/line/from` · `GET /v1/line/numbers` · `GET/POST/DELETE /v1/agents/{slug}/line` | **where a RING lands**, in two steps. (`/v1/line/numbers`, `app`: the phones this person said are theirs, the org's production phone numbers and the agent each reaches — what a developer's phone dials, which the numbers door would not tell a sandbox key.) First whose phone dialled: a developer says which number they call FROM (`app`, the sandbox, a key naming a person) and every call they make lands in their own corner — no coordination, three of them testing at once. Then, for a number nobody claimed, the agent's **line**: reading it takes `calls`, claiming and releasing take `app`; the first corner to hold an agent takes it and it is handed on when that terminal closes, instead of the newest `pinecall run` silently answering in a colleague's scrollback. Neither is a row — both are only meaningful next to a socket, and `pinecall run` re-says the phone on every connect. Production has one corner and the box holds it — with one exception, the next row. `TheLine` in `rest.json` |
 | `GET /v1/agents/{slug}/rings-for?caller=` | **a production ring from a developer's own phone.** The worker asks it on every phone call to a production number that no dispatch aimed (`app`; the fleet's key adds `&org=`): is the phone dialling one a developer registered with `PUT /v1/line/from`, and are they holding this agent in the sandbox, in this org? `{holder}` names that developer, and the worker builds the call in their sandbox corner — the declaration and the provider keys asked for their corner, their app socket, a sandbox log whose context metadata carries `diverted_from: production`. `{holder: null}` is production's, and so is any failure to ask: the call stays where it rang. Every other caller of the real number reaches production |
@@ -296,14 +296,14 @@ A **seat** is a LiveKit token for one call, minted by your key:
 | `POST /v1/calls/{call}/listen` | `observe` | hear the room. Hidden and silent: the caller is never told anybody joined |
 | `POST /v1/calls/{call}/supervise` | `supervise` | hear it, publish a microphone, and send the verbs |
 
-Both answer `{server_url, participant_token, identity}`. Join the room with it (any LiveKit
+Both answer `{server_url, participant_token, call, identity}`. Join the room with it (any LiveKit
 client, browser or server), or use it as the bearer of:
 
 - **`WS /v1/attach?call=<id>&token=<seat>`** — the call's log as it happens, and the verbs back up
   the same socket.
 - **`POST /v1/calls/{call}/verbs`** — one verb. The bearer may be the seat **or the org key**: a
   desk that only reads and types needs no seat at all, which is what `pinecall supervise` is. It
-  answers `202 {call, verb}`.
+  answers `202 {call, verb, seq}`, `seq` null: the entry is written after, and read off the log.
 
 The six verbs (`protocol/schema/verbs.json`): `say` (the agent says your words), `whisper` (an
 instruction the caller never hears), `takeover`, `release`, `transfer`, `end`. Each lands in the
@@ -316,8 +316,8 @@ the same way as what the agent did.
 
 **Pipeline.** `GET /v1/agents/{slug}/pipeline` answers the three legs as the NEXT call would be
 built — vendor, model, voice, language — the class's greeting, the medians livekit measured over
-recent calls, and which of the five knobs is turned. `PUT /v1/agents/{slug}/pipeline/overrides`
-turns them: `{voice, tts_model, stt, llm, greeting}`. The body is the **whole set**, so leaving a
+recent calls, and which of the six knobs is turned. `PUT /v1/agents/{slug}/pipeline/overrides`
+turns them: `{voice, tts, tts_model, stt, llm, greeting}`. The body is the **whole set**, so leaving a
 field out is how you give it back to what the app declared; a blank value is refused, because an
 empty voice once silenced a whole line of calls.
 
@@ -382,8 +382,8 @@ tenant's read of what the operator's `/v1/ops/usage` pages; and `GET /v1/numbers
 the org answers in the key's world, each saying whether an operator typed it or an app declared
 it (`numbers`). `GET /v1/keys` is the org's own API keys by fingerprint, never a key; `POST /v1/keys {label?, env?, scopes?}` mints one for a machine — `app` and production when nothing is
 said, naming nobody — answered in the clear the once; `POST /v1/keys/{fingerprint}/revoke` stops
-one, and another org's fingerprint is `404` like nobody's. A key may not issue a scope it does not
-itself open (`keys`). A person holds one key per world: `POST /v1/login/env {env}` mints the same
+one, and another org's fingerprint is `404` like nobody's. A key may not issue a scope beyond what
+it opens — a person's, beyond what their role opens (`keys`). A person holds one key per world: `POST /v1/login/env {env}` mints the same
 person's key, with what their role opens there, in the other — how `pinecall login` gets its sandbox key — and `POST /v1/login/org {org}` in another of their orgs (§8). A tenant's own
 carrier and its numbers imported — Twilio or SIP, the carrier's trunk pointed at the box, the SFU's
 trunk admitting the number, the route — are [numbers.md](/api/numbers).
