@@ -557,3 +557,8 @@ div[role="status"][aria-live="polite"].fixed.cursor-grab {
   line-height: 1.55;
   color: var(--pc-ink-soft);
 }
+
+/* The logo in the top bar: 22px tall. */
+img.nav-logo {
+  height: 22px !important;
+}
