@@ -108,7 +108,9 @@
             "pages": [
               "api/every-door",
               "api/gateway",
+              "api/console",
               "api/operator",
+              "api/the-box",
               "api/tokens",
               "api/people",
               "api/numbers",

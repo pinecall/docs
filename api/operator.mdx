@@ -9,7 +9,7 @@ self-host is in this repo; everything needed to charge for it lives outside, in 
 and that half only ever reaches a runtime through this API. Nothing here prices anything, and
 nothing here is private.
 The model underneath — what an org is, what a key IS, how a tenant is given one — is
-[../multi-tenancy.md](/operate/multi-tenancy), and the verbs are [../the-runtime-cli.md](/operate/the-runtime-cli).
+[../multi-tenancy.md](/operate/multi-tenancy), and the verbs are [../the-runtime-cli.md](/operate/the-runtime-cli). What the operator configures about the **box itself** — its mail, its brand, a box-wide "Continue with Google" — is [the-box.md](/api/the-box).
 
 ## Authentication
 
@@ -88,14 +88,7 @@ Forget the number. `204` when a row went; `404` when no row answered to it — a
 must never read as done. Whatever a running app declares for that number answers again from the
 next call.
 
-Two doors touch a tenant's people, and they are the only two. `GET /v1/ops/orgs/{named}/members`
-is the org's people as the operator reads them — `{members: [...], seated}`. `POST /v1/ops/orgs/{named}/members {email, name, role, agents?}` **invites** one — the org's first admin
-where sign-ups are shut, or one more — and answers `201` with the row and a one-use `token`,
-exactly as the tenant's own invite does; it takes none of the org's seats, because a plan caps
-what an org seats by itself. There is no door here that changes or disables a member: an
-invitation is inert until the person it names accepts it with a password of their own, so the box
-can seat somebody and never be them, while a role changed from here would be the box editing a
-tenant's team. Changing and disabling are the tenant's own `/v1/members` ([people.md](/api/people)).
+Four doors touch a tenant's people, and they are the only four. `GET /v1/ops/orgs/{named}/members` is the org's people as the operator reads them — `{members: [...], seated}`. `POST /v1/ops/orgs/{named}/members {email, name, role, agents?}` **invites** one — the org's first admin where sign-ups are shut, or one more — and answers `201` with the row and a one-use `token`, exactly as the tenant's own invite does; it takes none of the org's seats, because a plan caps what an org seats by itself. An email that already has a password on this box — a person of another org — gets no token: the row is `active` from the start, with that password, and `token` and `expires_at` are null ([people.md](/api/people)). `PUT /v1/ops/orgs/{named}/members/{id}/operator {operator}` makes that member an operator of the box, or stops: their own key opens `/v1/ops/*` as well as their org's doors, and nothing about their org changes — a person is their email, so it is their key in ANY org of theirs, and the console's org switch then lists every org of the box and lets them into one as `operator:<email>`, on a production key with an admin's scopes and no member row ([people.md](/api/people)); taking the flag back stops those keys on their next request; `404` for an id no member of the org answers to. `DELETE /v1/ops/orgs/{named}/members/{id}` removes one **for good** — `204`, every key of theirs revoked first, the row and its open links gone, the seat free — under the tenant door's own rules less "yourself": `409` for the org's last active admin, `404` for a stranger. There is no door here that changes a member's role or standing: an invitation is inert until the person it names accepts it with a password of their own, so the box can seat somebody and never be them, while a role changed from here would be the box editing a tenant's team. Changing and disabling are the tenant's own `/v1/members` ([people.md](/api/people)).
 
 ## Orgs
 
@@ -132,11 +125,14 @@ is no limit.
 { "id": "org_3f2a9c1b8d0e", "slug": "clinica-norte", "name": "Clínica Norte",
   "quotas": { "minutes": 1000, "messages": null, "agents": 5, "concurrent_calls": 10,
               "memory_facts": 5000, "knowledge_chunks": 2000, "seats": 10 },
+  "dialling": { "dial_anywhere": false, "per_minute": 6, "per_day": 200,
+                "max_duration_s": 600 },
   "holding": { "memory_facts": 412, "knowledge_chunks": 1860, "numbers": 1, "seats": 4 } }
 ```
 
-`holding` is a count taken now, one indexed query over the rows themselves (`0` on a runtime with
-no database). It is here and not on `/v1/ops/usage`, which folds the log: a row there is an event
+`dialling` is what the org may dial out, below — the code's own defaults for an org nobody has set
+one for. `holding` is a count taken now, one indexed query over the rows themselves (`0` on a
+runtime with no database). It is here and not on `/v1/ops/usage`, which folds the log: a row there is an event
 at a cursor, and a stock has no cursor.
 
 ### `DELETE /v1/ops/orgs/{org}`
@@ -156,10 +152,11 @@ The whole set, replaced: a limit left out is no limit. Zero is a real limit and 
 
 ```json
 { "minutes": 1000, "agents": 5, "concurrent_calls": 10,
-  "memory_facts": 5000, "knowledge_chunks": 2000, "numbers": 1, "seats": 10 }
+  "memory_facts": 5000, "knowledge_chunks": 2000, "numbers": 1, "seats": 10, "budget_eur": 300 }
 ```
 
-Four of them are **flows** — what the org has consumed, or holds open right now. `minutes` is
+`budget_eur` rides the same body and is not a quota: whole euros a calendar month, both worlds,
+shown beside what was spent (`GET /v1/insights`, [console-api.md](/api/console)); nothing is refused over it. Four of them are **flows** — what the org has consumed, or holds open right now. `minutes` is
 minutes of call, summed from every `call.summary` in the org's logs; `messages` is turns, both
 sides, the same way; `agents` is how many agents the org's sockets may hold at once;
 `concurrent_calls` is how many of its calls may be open on this gateway at once. The answer is the
@@ -173,15 +170,7 @@ org clinica-norte has used 1000 of its 1000 minutes: credits.exhausted
 — on `POST /v1/calls`, on `POST /v1/tokens` (before the browser joins), on the chat socket (as the
 close reason) and on `agent.register` (as the `error` frame that follows the entry).
 
-Four are **stocks** — how much of a table the org may keep standing: `memory_facts`, the facts
-memory holds about its contacts, all together (a superseded one is history and is not counted);
-`knowledge_chunks`, the chunks its bases hold, all together; `numbers`, the ones the box bought for
-it on its own carrier account; and `seats`, the people it holds — invited and active together,
-because an invitation sent is a seat taken, and a `disabled` member keeps their row and holds none.
-Same mechanism, and it is what a plan switches memory and retrieval off with: `null` is no limit, a number is a cap, and **`0` is how a
-plan that does not include the feature is expressed** — a `0` org keeps neither, and its `recall`
-and `search` tools find nothing, embed nothing and write no entry at all: a plan without
-a feature is not a failure and must not read as one.
+Four are **stocks** — how much of a table the org may keep standing: `memory_facts`, the facts memory holds about its contacts, all together (a superseded one is history and is not counted); `knowledge_chunks`, the chunks its bases hold, all together; `numbers`, the ones the box bought for it on its own carrier account; and `seats`, the people it holds — invited and active together, because an invitation sent is a seat taken, and a `disabled` member keeps their row and holds none. Same mechanism, and it is what a plan switches memory and retrieval off with: `null` is no limit, a number is a cap, and **`0` is how a plan that does not include the feature is expressed** — a `0` org keeps neither, and its `recall` and `search` tools find nothing, embed nothing and write no entry at all: a plan without a feature is not a failure and must not read as one.
 
 - **`PUT /v1/knowledge/{base}`** counts what the push would become — the org's other bases plus the
   chunks these files cut into, the base being replaced counted as freed — and answers `429` before
@@ -206,6 +195,24 @@ carrier account (`POST /v1/numbers/buy`, [numbers](/api/numbers)), counted on th
 nothing. `0` is a plan that buys none; the refusal is the same `429` sentence, written before the
 carrier is asked and with no `credits.exhausted` entry, since a purchase opens no call.
 
+## What an org may dial
+
+### `PUT /v1/ops/orgs/{org}/dialling`
+
+The org's outbound guards, replaced whole — but a guard left out goes back to the code's own
+**default** and never to "no limit": there is no such thing as an org that may dial without a
+fence, which is the one way this differs from the quotas above. It is the operator's and not the
+tenant's, deliberately and unlike `PUT /v1/org/judging`, which an org turns for itself: an org that
+could lift its own dialling fence has none.
+
+```json
+{ "dial_anywhere": false, "per_minute": 6, "per_day": 200, "max_duration_s": 600 }
+```
+
+What each guard refuses, and its status, is [console-api.md](/api/console) §4, beside the door that places a call. Three are worth naming here. `dial_anywhere` is the one switch that turns a call-back box into one that can dial strangers — off, a destination must already have called or written to one of the org's agents, and "call back" means back. Which countries an org may reach is its carrier account's own setting (Twilio's geo permissions), and never a guard here. `max_duration_s` rides in the dispatch and is enforced by the media plane, so a worker that crashed leaves no call running on somebody's bill.
+
+A count below zero is `400` with the reason. The answer is the policy as kept, and it bites the next dial. The CLI over this door is `pinecall-runtime orgs dialling <org> [--dial-anywhere/--no-dial-anywhere] [--per-minute N] [--per-day N] [--max-duration-s N]`.
+
 ## Keys
 
 An API key is what a worker and a tenant's app knock at the runtime's own doors with — `GET /v1/routes`, the app socket, the log. It **is** the org: every door reads the org off the key and
@@ -218,7 +225,8 @@ registry and the routes are namespaced by it — and the registry again, in the 
 member the key names, so two developers of one tenant hold their own — and a number claimed in one
 world is refused to a key of the other, naming the world that holds it. `scopes` is what it may do there, as the doors are
 grouped (`app` · `calls` · `talk` · `supervise` · `pipeline` · `knowledge` · `memory` · `evals` ·
-`numbers` · `keys` · `providers` · `team` · `usage`); `subject` and `name` say whose it is when it
+`numbers` · `keys` · `providers` · `team` · `usage`, and `fleet`, the box's own worker's — its doors
+resolve by the call's corner, and it is minted only when named); `subject` and `name` say whose it is when it
 is a person's. An org issues its own machine keys at `POST /v1/keys` without any of this.
 Every key issued before the fields existed is production's, with every scope.
 
@@ -229,8 +237,8 @@ is ever carried in the clear, and it is carried once.
 ### `POST /v1/ops/orgs/{org}/keys`
 
 Issue a key for the org. The body says what it is for, where it opens, what it may do, whose it is;
-every field is optional — `env` defaults to `production`, `scopes` left out is every scope, the
-rest to `null` — and a world or a scope nobody declared is `400` with the reason in `detail`:
+every field is optional — `env` defaults to `production`, `scopes` left out is every scope but
+`fleet`, the rest to `null` — and a world or a scope nobody declared is `400` with the reason in `detail`:
 
 ```json
 { "label": "berna's laptop", "env": "sandbox",
@@ -318,7 +326,10 @@ Which vendors the org brought a key for. **Names only** — never a value, and n
 ```
 
 Nothing in this API, and nothing anywhere else in the runtime but the worker's own
-`GET /v1/agents/{slug}/provider-keys`, reads a stored provider key back.
+`GET /v1/agents/{slug}/provider-keys`, reads a stored provider key back. An org's OpenID client
+secret is sealed under the same vault key and read back by nothing at all; the box's two doors
+over it — `GET /v1/ops/orgs/{org}/sso`, and the break-glass `PUT …/sso/required {required}` that
+lets a password open that org again — are in [people.md](/api/people).
 
 ## Usage
 
@@ -379,8 +390,8 @@ with `PINECALL_OPS_KEY`; every verb, flag by flag, is [../the-runtime-cli.md](/o
 Two rules worth repeating here: `orgs provider-key set` reads the key from **stdin** and never from
 a flag, because argv is in `ps` and in a shell history; and `keys issue` prints **the key alone on
 the first line** — a script reads it with `head -1` — and the org, the label and the warning under
-it. `pinecall-runtime migrate up` prints one the same way on a database whose `default` org has
-none, and that alone is what creates the first key on a fresh box.
+it. `pinecall-runtime migrate up` mints nothing: on a database whose `default` org has no key it
+says so and names `keys issue --org default`, which is the one verb that creates a key.
 
 ## An agent's pipeline
 

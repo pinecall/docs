@@ -30,7 +30,8 @@ In another terminal, sign this one in. The password is typed in a browser and ne
 and what the terminal keeps is a key of its own, labelled as this machine and revoked on its own:
 
 ```
-pinecall login http://127.0.0.1:8080
+pinecall gateway http://127.0.0.1:8080   # once: this machine talks to your own box
+pinecall login
 pinecall whoami                    # which org, which world, where the key came from
 ```
 
@@ -335,12 +336,14 @@ discount, and it cannot open the confirmation gate anyway, because that gate is 
 Everything above wrote lines. Read them:
 
 ```
-pinecall run
-console  https://box.pinecall.io/a/clinica-norte?login=lc_…   (opens within five minutes, once)
+pinecall run --serve
+console  http://localhost:4100/a/clinica-norte
 ```
 
-Open that URL. The gateway serves the console; the code signs this browser in with a key of its
-own, and your org key never reaches it. The Live screen shows a call as it happens: the turns, the tools, the state after each
+Open that URL. It is the console of your sandbox, served by that same terminal: every request the
+page makes is forwarded to the gateway with the terminal's key, so there is nothing to sign in to
+and the key never reaches the browser. (Production is watched on the gateway's own page, which you
+sign in to.) The agent's Calls screen shows a call as it happens: the turns, the tools, the state after each
 one, `recall · 1 fact · 138 ms`, `search · 3 chunks · 181 ms`, and the verdicts at hang-up.
 
 The same thing without a browser:
@@ -387,11 +390,15 @@ is for.
 
 ## Where to go next
 
+- **A second agent in the same repository**: move the class to `agents/<name>.tsx` and each folder
+  under its name — [Several agents in one project](/agent/writing-an-agent#several-agents-in-one-project).
+  `pinecall run` at the root then holds both.
+
 | you want | read |
 |---|---|
 | every declaration a class may carry | [writing-an-agent.md](/agent/writing-an-agent) |
 | the three regions, and what goes in each | [the-prompt.md](/agent/the-prompt) |
-| the four rings, and how a golden is written | [testing-an-agent.md](/agent/testing-an-agent) |
+| the five rings, and how a golden is written | [testing-an-agent.md](/agent/testing-an-agent) |
 | every verb | [the-cli.md](/operate/the-cli) |
 | working with a team, and putting the agent on a box | [worlds-and-teams.md](/start/worlds-and-teams) |
 | why retrieval is shaped this way | `runtime/docs/security/prompt-injection.md` |

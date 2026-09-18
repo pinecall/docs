@@ -3,7 +3,7 @@ title: "Testing an agent"
 description: "The rings: goldens in this process, a live persona, and a real call re-judged."
 "og:see_also": "https://github.com/pinecall/agents/docs/testing-an-agent.md"
 ---
-Four rings, and each one asks a different question. They are not levels of thoroughness: a green
+Five rings, and each one asks a different question. They are not levels of thoroughness: a green
 ring 0 says nothing about ring 1, and a green ring 1 says nothing about a real line.
 
 | ring | the question | what runs it | costs |
@@ -52,7 +52,10 @@ notices when a render starts writing into the cached half.
 ## Ring 1 — the goldens
 
 A golden is one conversation written down: where it starts, what the caller says, and what is
-expected of it. One file per case, in `test/goldens/`, named after what it is about.
+expected of it. One file per case, in `test/goldens/` — `test/goldens/<name>/` for each agent of a
+project of several — named after what it is about. An agent with no goldens yet has none, which
+is an answer and not an error: the console's roster is empty and `pinecall test` says where to
+write the first.
 
 ```jsonc
 {
@@ -92,7 +95,8 @@ about memory needs no contact in a database and leaves nothing behind.
 | `expect.replies` | the agent answered at all |
 
 ```bash
-pinecall test                                  # every golden in test/goldens/
+pinecall test                                  # every golden in test/goldens/ (in a project: every agent's test/goldens/<name>/)
+pinecall test --agent sales                    # in a project: one agent's
 pinecall test test/goldens/reserva-*.json      # some of them
 pinecall test --grep reserva --watch           # while writing one
 pinecall test --model haiku --model openai/gpt-4.1-mini   # the matrix: models × goldens
@@ -133,6 +137,9 @@ export default {
   state: { stage: "choose", patient: { … } },   // where their call opens
 };
 ```
+
+One file per caller in `test/personas/`, or `test/personas/<name>/` in a project, where
+`personas list` prints every agent's and `show`, `try` and `simulate` take `--agent`.
 
 ```bash
 pinecall personas list                      # one line each: the name, and the goal

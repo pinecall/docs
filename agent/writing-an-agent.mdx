@@ -25,6 +25,30 @@ test/
 tsconfig.json       { "extends": "pinecall/tsconfig.tenant.json" }
 ```
 
+### Several agents in one project
+
+A repository that holds more than one agent keeps each as a file under `agents/`, and shares every
+other folder by the agent's name:
+
+```
+agents/dispatch.tsx       one class each; the slug is declared on it
+agents/sales.tsx
+lib/                      what they share
+knowledge/dispatch.md     by heart: `knowledge = "../knowledge/dispatch.md"`, relative to the class
+knowledge/sales/          the documents `pinecall knowledge push` sends to sales's base
+knowledge/sales.golden.json
+test/dispatch.test.ts     ring 0, one file per agent
+test/goldens/<name>/      test/personas/<name>/      test/memory/<name>/
+memory/<name>.golden.json
+```
+
+At that root `pinecall run` holds every agent on one socket, and every verb acts on each agent
+against its own folders, or on the one `--agent <name\|slug>` names; a verb about one agent —
+`chat`, `simulate`, `prompt`, `remember`, `line`, among others — needs `--agent` when there are
+several. A
+folder nobody has written yet is empty, not an error. The CLI's page says which verb does what:
+[A project of several agents](/operate/the-cli#a-project-of-several-agents).
+
 The file is `agent.tsx` because the class renders JSX. That is the only reason, and it changes
 nothing else: a class that writes no `render()` may stay in `agent.ts`, and the CLI finds either.
 
@@ -88,11 +112,12 @@ diffed, never rendered, never in a snapshot:
 | `phone`, `whatsapp`, `web` | the doors this agent answers. A number, or `true` for a door with none |
 | `voice` | a voice **by name** — the platform resolves it to a vendor and an id |
 | `llm` | `"haiku"`, `"sonnet"`, `"opus"`, or `"provider/model"` |
+| `stt` | the ears: `"deepgram"` (Flux), `"soniox"`, or `"vendor/model"`. Unsaid, the runtime's own |
 | `language` | which standing rules the framework contributes (`es`, `en`) |
 | `greeting` | how the call opens: the words, or what the model reads before finding its own |
 | `says` | `{ DKV: "de ka uve" }` — how a word the voice would misread is said |
 | `hears` | the words the ears must know: names, brands, the doctor's surname |
-| `knowledge` | one file, read beside `agent.tsx` and sent whole: cached ahead of everything |
+| `knowledge` | one file, its path relative to the class's own file, sent whole: cached ahead of everything |
 | `docs` | the knowledge base retrieved per turn, **by the name it was pushed under** |
 | `memory` | what to remember about a caller across calls, and what never to |
 
@@ -149,13 +174,14 @@ memory = {
 };
 ```
 
-**`knowledge`** is the one file the agent knows by heart. The path is relative to `agent.tsx`; the
-CLI reads it there and sends `{ path, text }` in the declaration, and the runtime writes the text
+**`knowledge`** is the one file the agent knows by heart. The path is relative to the class's own
+file — `agent.tsx`, or `agents/<name>.tsx` in a project, where it reads
+`"../knowledge/<name>.md"`; the CLI reads it there and sends `{ path, text }` in the declaration, and the runtime writes the text
 into the `knowledge` block, once per call, in the cached prefix. A file that is not there is
 refused at load: `knowledge ./knowledge/nadie.md: no such file at /…/knowledge/nadie.md`.
 
-**`docs`** names the knowledge base the agent answers from — the folder under `knowledge/docs/`,
-pushed to the gateway under a name:
+**`docs`** names the knowledge base the agent answers from — the folder under `knowledge/docs/`
+(`knowledge/<name>/` in a project), pushed to the gateway under a name:
 
 ```bash
 pinecall knowledge push                       # ./knowledge/docs beside agent.tsx, base = the slug
@@ -362,12 +388,15 @@ pinecall chat                      # the app in THIS terminal, and a written cal
 pinecall chat --as +34600123456    # the same call, from somebody memory can file it under
 pinecall prompt --state test/prompts/states.json    # what the model would read, offline
 pinecall knowledge push            # ./knowledge/docs to the gateway, under the agent's slug
-pinecall run                       # the app registered and answering: the process you deploy —
-                                   # and it prints the console's URL: talk, calls, sessions, evals
+pinecall run                       # the app registered and answering: the process you deploy
+pinecall run --serve               # the same, and your console on http://localhost:4100:
+                                   # talk, chat, calls, sessions, evals, knowledge, memory, widget
 ```
 
 `pinecall run` is the same process in the sandbox and in production: it runs the agent, binds no
-port and serves no page. What a person looks at is `--ui` in the terminal, or the console.
+port and serves no page. What a person looks at is `--ui` in the terminal, or a console — the
+sandbox's on their own machine (`pinecall serve`, which `--serve` opens beside the agent), and
+production's on the gateway.
 
 Next: [the-prompt.md](/agent/the-prompt) for the view, and [testing-an-agent.md](/agent/testing-an-agent)
 for the goldens.

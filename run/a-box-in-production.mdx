@@ -75,7 +75,9 @@ make deploy
 ```
 
 `make deploy` is five steps, and it says each one as it runs it: **console** builds the browser
-pages from the agents checkout beside this one · **sync** rsyncs two directories · **install**
+pages from the agents checkout beside this one and copies the widget from the widget checkout
+beside it (`scripts/console`; `PINECALL_AGENTS` and `PINECALL_WIDGET` point elsewhere), all three
+served by the gateway · **sync** rsyncs two directories · **install**
 puts every file of `infra/box/` where systemd reads it, installs the packages the box is missing,
 enables the units this role owns and disables the others, and runs `uv sync` as the service user ·
 **restart** makes the box's secrets, starts the media plane, restarts the gateway, and waits for
@@ -86,6 +88,7 @@ $ make deploy
 scripts/console
 console → src/pinecall/gateway/console (4 files)
 admin → src/pinecall/gateway/admin (3 files)
+widget → src/pinecall/gateway/widget/pinecall-widget.js
 …
 sudo make -s -C /opt/pinecall/app/runtime/infra/box install
 sudo systemctl start pinecall-secrets
@@ -115,6 +118,7 @@ $ make doctor
 ✓ livekit               http://127.0.0.1:7880/ — HTTP 200
 ✓ postgres              postgresql://pinecall@127.0.0.1:5432/pinecall — vector, pg_textsearch
 ✓ embedder              tei · BAAI/bge-m3 — http://127.0.0.1:8081/info — HTTP 200
+! mail                  not configured — set PINECALL_SMTP_URL and PINECALL_MAIL_FROM to mail invitations and password resets; …
 ! lk                    not installed — brew install livekit-cli
 
 all up
@@ -149,6 +153,83 @@ b50420886f22
 
 `e3b0c44298fc` is the sha256 of the empty string: a credential written from a variable that was
 not set.
+
+### The worker's key
+
+The worker knocks at the gateway with a key of its own, minted once on first start by
+`pinecall-worker-key.service`: org `default`, with the **`fleet`** scope. That scope is what lets
+one worker answer every org's calls — its doors resolve by the call the dispatch named, never by
+the key's org — and nothing but that unit mints it. A box born before the scope existed still
+holds a worker key without it, and every org's call but `default`'s dies with `NoRoute`. Once:
+
+```console
+$ pinecall-runtime keys list --org default          # from the checkout: the old key's fingerprint
+$ ssh $BOX
+$ sudo /opt/pinecall/venv/bin/pinecall-runtime keys revoke <that fingerprint>
+$ sudo rm /etc/credstore.encrypted/PINECALL_WORKER_KEY
+$ sudo systemctl start pinecall-worker-key           # mints the new one, fleet scope and all
+$ sudo systemctl restart pinecall-worker pinecall-overflow
+```
+
+### The box's mail
+
+A box that can post a letter mails every invitation and every admin's reset to the person they are
+about, and lets a person who forgot their password ask for a link themselves (`POST /v1/login/reset`). A box that cannot still works exactly as before: the link is in the answer, and
+an admin passes it on. The transport is **generic SMTP** — Amazon SES, Postmark, Mailgun or a mail
+server of your own — and it is two settings, **or one screen**: the operator stores a mailbox at
+`PUT /v1/ops/mail` from the admin page ([the-box.md](/api/the-box)), which wins over the two
+variables below and needs no restart:
+
+| | | |
+|---|---|---|
+| `PINECALL_SMTP_URL` | **a secret**: `make secret` | `smtp://<user>:<password>@<host>:587` (STARTTLS) or `smtps://…:465` (implicit TLS) |
+| `PINECALL_MAIL_FROM` | not a secret: `/etc/pinecall/box.env` | `Pinecall <noreply@example.com>`, an address the relay lets you send from |
+
+The unit already imports every `PINECALL_*` credential, so there is nothing to change in it. A
+password with `/` or `+` in it may be pasted raw or percent-encoded; either reads the same.
+
+**On Amazon SES**, which is what `box.pinecall.io` sends through:
+
+1. **Verify the domain** in the SES console of the region you send from (`us-east-1` here):
+   *Identities → Create identity → Domain*, with **Easy DKIM**. SES answers three `CNAME` records;
+   put them in the domain's DNS — Route 53 for ours — and wait for *Verified*. Add the SPF include
+   (`v=spf1 include:amazonses.com ~all`) where the domain has an SPF record, and a DMARC record if
+   it has none. A custom MAIL FROM domain is optional and makes SPF align.
+2. **Make SMTP credentials**: *SMTP settings → Create SMTP credentials*. It makes an IAM user
+   allowed `ses:SendRawEmail` and shows **its access key id — the SMTP user — and an SMTP password
+   that is not the secret access key**: it is derived from that key and the region (HMAC-SHA256,
+   version byte `0x04`, base64), so it is region-specific and a secret key pasted in its place is
+   a `535`. The derivation is AWS's own page, *Obtaining Amazon SES SMTP credentials*
+   (docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html); the console does it for you, and
+   the password is shown once.
+3. **Leave the sandbox**: a new SES account sends only to addresses it has verified, two hundred a
+   day. *Account dashboard → Request production access*. Until it is granted, a letter to anybody
+   else is refused with `554 Message rejected: Email address is not verified`, and that sentence is
+   exactly what the doctor and `last_error` show.
+4. **Keep it on the box**, from your checkout, the password never in argv or in your history:
+
+```bash
+read -rs SES_SMTP_PASSWORD                             # paste it; nothing echoes
+printf 'smtp://%s:%s@email-smtp.us-east-1.amazonaws.com:587' "$SES_SMTP_USER" "$SES_SMTP_PASSWORD" \
+  | make secret NAME=PINECALL_SMTP_URL
+unset SES_SMTP_PASSWORD
+ssh $BOX "echo 'PINECALL_MAIL_FROM=Pinecall <noreply@pinecall.io>' | sudo tee -a /etc/pinecall/box.env"   # once
+make restart
+make doctor MAIL_TO=you@example.com
+```
+
+```console
+✓ mail                  Pinecall <noreply@pinecall.io> through email-smtp.us-east-1.amazonaws.com:587 (starttls) — `doctor --mail-to you@example.com` posts one
+…
+mail sent  you@example.com — taken by email-smtp.us-east-1.amazonaws.com:587
+```
+
+`! mail  not configured` is advice and never the verdict. `GET /.well-known/pinecall` answers
+`"mail": true` from the next start, which is how the console's sign-in page knows it may offer
+"Forgot your password?". **An org that wants its letters to come from its own domain** wires its
+own account at `PUT /v1/org/mail` (its password sealed under `PINECALL_VAULT_KEY`), which wins
+over the box's for that org; `POST /v1/org/mail/test` sends one and says what the server said —
+[people.md](/api/people).
 
 ## 6. The first org and the first person
 
@@ -198,12 +279,15 @@ waiting…
 
 $ pinecall run
 clinica-norte · pinecall · sandbox · connected to https://box.example.com · key from profile · tools 5 · doors phone +34910000000, whatsapp +34910000000, web
-console  https://box.example.com/a/clinica-norte?login=lc_…   (opens within five minutes, once)
+console  `pinecall serve` opens it on this machine (or `pinecall run --serve`)
 line     rings in this terminal
 ```
 
 One line, and it says the four things that decide where you are: the agent, **whose org**, **which
-world**, and where the key came from. Then, in another terminal:
+world**, and where the key came from. A laptop's run is in the sandbox, and the sandbox is watched
+on that laptop: `pinecall serve` puts the console on `http://localhost:4100`, signed by the
+terminal's key. The page this box serves at `/` shows production, and only production. Then, in
+another terminal:
 
 ```console
 $ pinecall chat
@@ -225,6 +309,28 @@ pinecall run --env production
 believe you hold, and the verb stops when the key disagrees. A person's key does not open `app` in
 production at all — what holds a deployed slug is a key issued for a server, never a laptop that
 logged in.
+
+### Or on the box itself
+
+A tenant with no server of their own can be held on the box: `pinecall-app@<name>.service` is
+those same three lines as a unit, one instance per app. The manifest installs the template and
+Node; the app's own deploy, from its checkout, does the rest — three targets in the tenant's
+own Makefile, and what a `pinecall deploy` verb will do one day:
+
+```console
+$ make key        # `keys issue --org <org> --scope app …` on the box, straight into the credstore as pinecall-app-<name>.key
+$ make secrets    # the app's .env, as dotenv lines, into the credstore as pinecall-app-<name>.env — PINECALL_AGENT among them when the repo holds several agents
+$ make deploy     # rsync to /opt/pinecall/apps/<name>, `pnpm install --frozen-lockfile`, enable and restart the instance
+```
+
+The instance signs in with `pinecall login --key-stdin` off its credential into a `PINECALL_HOME`
+of its own under `/var/lib/pinecall/apps/<name>`, sources its `.env` credential into its environment
+(`set -a` in the unit's own shell: `EnvironmentFile=` is read before a credential exists), and runs
+`pinecall run --env production ${PINECALL_AGENT:-}` against the gateway on loopback: a
+`PINECALL_AGENT` in that `.env` names the agent file to run when the app's repo holds several, and
+with none `pinecall run` runs what the directory holds — its `agent.tsx`, or at a project's root
+every agent of the project. Its journal is the app's stdout: `journalctl -u pinecall-app@<name> -f`. It is the
+org's production holder, so nothing else — no laptop — should hold that slug in production.
 
 Every verb, with its own outputs: [from-zero.md](/start/from-zero) and the agents repo's
 `docs/the-cli.md`.
@@ -252,6 +358,79 @@ pinecall numbers move +34910000000 --env production   # and back
 
 One row, in effect on the next call, carrier untouched. [protocol/numbers.md](/api/numbers)
 is the door and its refusals.
+
+## 9. Before the first call the box places
+
+Answering a number and placing a call are two different wirings, and only one of them is done.
+This is what the operator checks before the box dials anybody for the first time.
+
+### The firewall does not change
+
+**Outbound calling opens no new inbound port.** Read `infra/box/nftables.conf` again: `input` has
+`policy drop` with `ct state established,related accept` above everything else, so a call the box
+PLACES goes out through `output` — which accepts — and every packet that comes back belongs to a
+connection this box opened and is accepted on that one established rule. Nothing has to be let in,
+because nothing new rings.
+
+The `prerouting` chain's 5060 fence is a different question: it is about who may RING this box, and
+it is untouched. The carrier's signalling networks are still the only addresses whose INVITE gets
+through, and the drop counter under it still reads what it read.
+
+So: **nothing in `infra/box/nftables.conf` or `infra/box/sip.yaml` needs editing.** If you find
+yourself opening a port to make dialling work, the problem is at the far end's ACL and not here.
+
+### On Twilio, the box provisions the trunk
+
+Nothing is done by hand for the trunk itself. `POST /v1/carrier/outbound` sets the termination
+label on the org's own trunk — the one the import already made — mints a credential list named
+`pinecall-<org>` on the tenant's account, attaches it to the trunk, and makes the SFU's outbound
+trunk pointed at `pinecall-<org>.pstn.twilio.com`. Two things are the operator's:
+
+- **The org's Twilio credentials, brought with `PUT /v1/carrier`**, and with permission to write
+  trunking — this is the same account the import used, so if a number was imported it is already
+  right. A key that may read but not write answers `502` with Twilio's own sentence.
+- **Read the plan first.** `?dry_run=true` prints every step with the ids that stand today and
+  writes nothing, exactly as the import's dry run does. It is what you read before letting the
+  gateway touch a carrier account.
+
+One dead end the code refuses by name, and it is worth knowing before you meet it: a credential
+list already called `pinecall-<org>` on the account, **whose password this box no longer holds** —
+a box rebuilt without its vault, or an org whose carrier row was replaced. Twilio shows a
+credential's password exactly once and reads it back to nobody, and a second list would leave two
+logins nobody can tell apart, so the door stops with `409` and says what to do: delete that
+credential list in Twilio's console, and run the provisioning again.
+
+### On a SIP peer, the carrier provisions it
+
+This box creates nothing on somebody else's switch. Get from the carrier the host and port it
+accepts INVITEs at, the transport it wants, and the credentials it expects — which for most
+carriers is the same pair the peer already registers with — and put them on `PUT /v1/carrier` as
+`outbound_host`, `outbound_transport`, `outbound_username` and `outbound_password`. Then the peer
+has to admit **this box's public address** as a source of INVITEs: that is the carrier's own ACL,
+written in the carrier's own portal, and not this box's firewall. A peer that declares no
+`outbound_host` is refused by name rather than dialled at an address it merely sends calls from,
+which is how a box ends up ringing a stranger.
+
+### The guards, before the first dial and not after
+
+Every dial asked for is written to the `dials` ledger — taken **or** refused, with the guard's one
+word and the name of whoever asked — because a burst of refusals is the shape of somebody working
+out what a stolen key can reach. An org that has never been set one runs under the code's own
+defaults: `dial_anywhere` off, six dials a minute, two hundred a day, ten minutes the longest a
+placed call may run. Which countries it reaches is the carrier account's own setting.
+
+```bash
+pinecall-runtime orgs dialling clinica-norte --per-minute 6 --per-day 200
+pinecall-runtime orgs clinica-norte          # dialling, read back beside the quotas
+```
+
+Replaced whole, and a guard left out goes back to the default and never to "no limit". **The one
+that matters is `dial_anywhere`**: off, the box only calls back somebody who already called or
+wrote to one of the org's agents, which is what makes an outbound trunk safe to leave standing.
+On, the box can dial anybody — a telemarketer, and a decision somebody makes with their name on
+it. It is the operator's switch and no tenant's, because an org that could lift its own fence has
+none. [protocol/operator-api.md](/api/operator) is the door,
+[protocol/console-api.md](/api/console) §4 the one that places the call.
 
 ---
 
@@ -299,8 +478,9 @@ así que se llena sola mientras mirás.
   <img src="/images/dark/sessions.png" alt="Sessions" className="hidden dark:block" />
 </Frame>
 
-**Las terminadas**, de toda la org, la más nueva arriba: cuándo, cuánto duró, de dónde vino y con
-qué frase terminó. El id de cada una abre su log entero — el mismo que leen `pinecall sessions` y
+**Las terminadas**, del rincón de tu key, la más nueva arriba: cuándo, cuánto duró, de dónde vino y
+con qué frase terminó. En producción son las del teléfono; en el sandbox, las que hiciste vos —
+las de prueba de otro developer son suyas, y un admin las ve abriendo su copia. El id de cada una abre su log entero — el mismo que leen `pinecall sessions` y
 la API, byte por byte.
 
 ## Un agente
@@ -396,8 +576,9 @@ las que el tenant trajo propias, que viajan cifradas y no se leen de vuelta desd
 </Frame>
 
 **Team**: la gente de la org, su rol y su estado. Invitar imprime un link de un solo uso que abre la
-pantalla de contraseña; el operador entrega el link y nunca una contraseña. Un rol es un preset de
-scopes y nada más.
+pantalla de contraseña; el operador entrega el link y nunca una contraseña. Si el email ya tiene
+contraseña en esta box, no hay link: queda `active` en el acto, entra con la contraseña que ya
+tiene, y la org nueva aparece en su selector de orgs. Un rol es un preset de scopes y nada más.
 
 <Frame>
   <img src="/images/light/usage.png" alt="Usage" className="block dark:hidden" />
@@ -453,7 +634,7 @@ las que tiene.
 ```
                  ┌─ caddy ────────── TLS, :80 :443, the only thing the internet reaches
 internet ──────► │
-                 └─ pinecall-gateway ── the API and the two pages, :8080 on loopback
+                 └─ pinecall-gateway ── the API, the two pages and the widget, :8080 on loopback
                         │
                         ├── pinecall-postgres   the log, the orgs, the keys, the routes
                         ├── pinecall-livekit    the media plane, :7880 on loopback
