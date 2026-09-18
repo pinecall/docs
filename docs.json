@@ -42,10 +42,6 @@
   "search": {
     "prompt": "Search the docs"
   },
-  "banner": {
-    "content": "v0.1.0 is out: `pip install pinecall` and `npm i -g pinecall`.",
-    "dismissible": true
-  },
   "navbar": {
     "primary": {
       "type": "github",
