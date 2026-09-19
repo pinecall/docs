@@ -111,6 +111,7 @@
               "api/tokens",
               "api/people",
               "api/numbers",
+              "api/settings",
               "api/pipeline",
               "api/provider-keys",
               "api/projections",
