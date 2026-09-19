@@ -80,6 +80,7 @@
             "group": "Operate",
             "pages": [
               "operate/the-cli",
+              "operate/production",
               "operate/the-runtime-cli",
               "operate/multi-tenancy"
             ]

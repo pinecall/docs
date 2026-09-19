@@ -8,7 +8,7 @@ design: a docs site that holds its own copy of the prose is a site that describe
 longer does, a week later, and somebody trusts it.
 
 ```bash
-scripts/sync        # 43 pages and 38 images, from ../runtime, ../agents and ../protocol
+scripts/sync        # 44 pages and 38 images, from ../runtime, ../agents and ../protocol
 mint dev            # the site, at http://localhost:3000
 mint validate       # every page compiles — CI runs this
 ```
